@@ -349,7 +349,10 @@ and query_values : 'a 'b. wrapped_value list -> ('a,'b) query -> wrapped_value l
       values_expr acc expr) acc set in
     let acc = values_expr_list acc returning in
     acc
-  | TABLE _ -> invalid_arg "unable to coerce TABLE to value"
+  | TABLE _ -> 
+      (* Since TABLE adds no new values (only created on joins),
+         we simply return the accumulator *)
+      acc
 
 module Common = struct
 
