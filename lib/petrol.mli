@@ -463,6 +463,9 @@ module Postgres : sig
     val time : Ptime.t Type.t
     (** [time] represents the SQL time type. *)
 
+    val null_ty : 'a t -> 'a option t
+    (** [nullable] represents a nullable SQL field type, which generates an option *)
+
     module Numeric = Type.Numeric
 
   end 
