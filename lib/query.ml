@@ -29,10 +29,11 @@ type ('a,'b,'c) on_err_fun =
   -> ('c, 'a) t
   constraint 'a = ([> `UPDATE | `INSERT]) as 'a
 
-type ('a,'b,'c) on_conflict_fun =
-  ([< `DO_NOTHING ] as 'b) ->
-  ('c, 'a) t
-  -> ('c, 'a) t
+
+type ('a, 'b) on_conflict_fun =
+  Types.on_conflict_insert ->
+  ('b, 'a) t
+  -> ('b, 'a) t
   constraint 'a = ([> `INSERT]) as 'a
 
 
@@ -63,7 +64,9 @@ let select exprs ~from:table_name =
 let update ~table:table_name ~set =
   Types.UPDATE { table=table_name; on_err=None; where=None; set; returning = [] }
 let insert ~table:table_name ~values:set =
-  Types.INSERT { table=table_name; on_err=None; on_conflict=None; set; returning = [] }
+  Types.INSERT { table=table_name; on_err=None; on_conflict = None; set; returning = [] }
+let upsert ~table:table_name ~values:set ~on_conflict =
+  Types.INSERT { table=table_name; on_err=None; on_conflict; set; returning = [] }
 let delete ~from:table_name =
   Types.DELETE { table=table_name; where=None; returning = [] }
 
@@ -146,7 +149,7 @@ let on_err : 'a . [`ABORT | `FAIL | `IGNORE | `REPLACE | `ROLLBACK ] -> ('c, 'a)
   | Types.INSERT query ->
     INSERT { query with on_err = Some on_err }
 
-let on_conflict : 'a . [ `DO_NOTHING ] -> ('c, 'a) t -> ('c, 'a) t =
+let on_conflict : 'a . Types.on_conflict_insert -> ('c, 'a) t -> ('c, 'a) t =
   fun on_conflict (type a) (table : (_, a) t) : (_, a) t ->
   match table with
   | Types.SELECT_CORE _

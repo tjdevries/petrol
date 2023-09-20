@@ -22,9 +22,13 @@ let pp_on_err : Format.formatter -> [ `ABORT | `FAIL | `IGNORE | `REPLACE | `ROL
     | `FAIL -> Format.fprintf fmt "OR FAIL"
     | `ROLLBACK -> Format.fprintf fmt "OR ROLLBACK"
 
-let pp_on_conflict : Format.formatter -> [ `DO_NOTHING ] -> unit =
+(* Does it make sense to just change this to a regular variant? *)
+type on_conflict_insert = [ `DO_NOTHING | `DO_UPDATE of string * string ]
+
+let pp_on_conflict : Format.formatter -> on_conflict_insert -> unit =
   fun fmt -> function
     | `DO_NOTHING -> Format.fprintf fmt "ON CONFLICT DO NOTHING"
+    | `DO_UPDATE (conflict, expr) -> Format.fprintf fmt "ON CONFLICT (%s) DO UPDATE %s" conflict expr
 
 let pp_opt f fmt = function
   | None -> ()
@@ -68,7 +72,7 @@ and (_, !'res) query =
   | INSERT : {
     table: table_name;
     on_err: [`ABORT | `FAIL | `IGNORE | `REPLACE | `ROLLBACK ] option;
-    on_conflict: [`DO_NOTHING] option;
+    on_conflict: on_conflict_insert option;
     set: wrapped_assign list;
     returning: 'a expr_list;
   } -> ('a, [> `INSERT] as 'res) query

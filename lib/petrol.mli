@@ -968,9 +968,9 @@ module Query : sig
       only works for Sqlite3, use {!on_conflict} for portability when
       possible). *)
 
-  type ('a, 'b, 'c) on_conflict_fun = 'b -> ('c, 'a) t -> ('c, 'a) t
+
+  type ('a, 'b) on_conflict_fun = Types.on_conflict_insert -> ('b, 'a) t -> ('b, 'a) t
     constraint 'a = [> `INSERT ]
-    constraint 'b = [< `DO_NOTHING ]
   (** [('a,'b,'c) on_conflict_fun] defines the type of an SQL function
       that corresponds to SQL's ON CONFLICT clause.  *)
 
@@ -985,6 +985,12 @@ module Query : sig
   val insert :
     table:table_name ->
     values:Expr.wrapped_assign list -> (unit, [> `INSERT ]) t
+  (** [insert ~table ~values] corresponds to the SQL [INSERT {values} INTO {table}]. *)
+
+  val upsert :
+    table:table_name ->
+    values:Expr.wrapped_assign list -> 
+      on_conflict:Types.on_conflict_insert option -> (unit, [> `INSERT ]) t
   (** [insert ~table ~values] corresponds to the SQL [INSERT {values} INTO {table}]. *)
 
   val delete : from:table_name -> (unit, [> `DELETE ]) t
@@ -1009,7 +1015,7 @@ module Query : sig
   val on_err : ([< `INSERT | `UPDATE ], [ `ABORT | `FAIL | `IGNORE | `REPLACE | `ROLLBACK ], unit) on_err_fun
   (** [on_err err expr] corresponds to the SQL [{expr} ON ERR {err}].  *)
 
-  val on_conflict : ([< `INSERT ], [ `DO_NOTHING ], unit) on_conflict_fun
+  val on_conflict : ([< `INSERT ], unit) on_conflict_fun
   (** [on_conflict err expr] corresponds to the SQL [{expr} ON CONFLICT {err}] expression.  *)
 
 
