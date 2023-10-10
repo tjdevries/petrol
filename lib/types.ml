@@ -23,12 +23,6 @@ let pp_on_err : Format.formatter -> [ `ABORT | `FAIL | `IGNORE | `REPLACE | `ROL
     | `ROLLBACK -> Format.fprintf fmt "OR ROLLBACK"
 
 (* Does it make sense to just change this to a regular variant? *)
-type on_conflict_insert = [ `DO_NOTHING | `DO_UPDATE of string * string ]
-
-let pp_on_conflict : Format.formatter -> on_conflict_insert -> unit =
-  fun fmt -> function
-    | `DO_NOTHING -> Format.fprintf fmt "ON CONFLICT DO NOTHING"
-    | `DO_UPDATE (conflict, expr) -> Format.fprintf fmt "ON CONFLICT (%s) DO UPDATE %s" conflict expr
 
 let pp_opt f fmt = function
   | None -> ()
@@ -42,6 +36,12 @@ type 'a expr_list =
 
 and 'a expr = .. 
 and wrapped_assign = ASSIGN : 'a field * 'a expr -> wrapped_assign
+
+and on_conflict_insert = [
+  | `DO_NOTHING
+  | `DO_UPDATE of string * string 
+  | `DO_UPDATE_BETTER of string expr * string expr ]
+
 and (_, !'res) query =
     | SELECT_CORE : {
       exprs: 'a expr_list;
@@ -100,6 +100,12 @@ let pp_fn : printer ref = ref { pp_expr = fun (type a) _fmt (expr: a expr) : uni
 let pp_expr fmt expr = (!pp_fn).pp_expr fmt expr
 (* let () = pp_fn := { pp_expr = fun (type a) fmt (expr: a expr) : unit -> pp_expr fmt expr } *)
 let add_printer f = let old_pp = !pp_fn in pp_fn := f old_pp
+
+let pp_on_conflict : Format.formatter -> on_conflict_insert -> unit =
+  fun fmt -> function
+    | `DO_NOTHING -> Format.fprintf fmt "ON CONFLICT DO NOTHING"
+    | `DO_UPDATE (conflict, expr) -> Format.fprintf fmt "ON CONFLICT (%s) DO UPDATE %s" conflict expr
+    | `DO_UPDATE_BETTER (conflict, expr) -> Format.fprintf fmt "ON CONFLICT (%a) DO UPDATE SET %a" pp_expr conflict pp_expr expr
 
 type collector = { values_expr : 'a . wrapped_value list -> 'a expr -> wrapped_value list }
 let values_fn : collector ref = ref { values_expr = fun (type a) _ (expr: a expr) ->
